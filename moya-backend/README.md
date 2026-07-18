@@ -31,16 +31,16 @@ Stop it with `Ctrl+C`, or `docker compose down` to remove containers
 ## Try it end to end
 
 ```bash
-# 1. Register (returns a dev-mode OTP code directly — see routes/auth.js)
+# 1. Register (returns a dev-mode 6-digit OTP code directly — see routes/auth.js)
 curl -s -X POST http://localhost:4000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"name":"Aline Uwase","phone":"0780000001"}'
-# -> {"devCode":"4821", ...}
+# -> {"devCode":"847321", ...}
 
 # 2. Verify with that code to get a JWT
 curl -s -X POST http://localhost:4000/api/auth/verify \
   -H "Content-Type: application/json" \
-  -d '{"name":"Aline Uwase","phone":"0780000001","code":"4821"}'
+  -d '{"name":"Aline Uwase","phone":"0780000001","code":"847321"}'
 # -> {"token":"eyJ...", "user": {...}}
 
 TOKEN="paste the token here"
@@ -56,9 +56,11 @@ curl -s -X POST http://localhost:4000/api/orders/reserve \
 # 5. See your tickets
 curl -s http://localhost:4000/api/tickets/me -H "Authorization: Bearer $TOKEN" | jq
 
-# 6. Gate check-in (try it twice — the second call reports "duplicate")
-curl -s -X POST http://localhost:4000/api/tickets/MOYA-EV1-1234/checkin
-curl -s -X POST http://localhost:4000/api/tickets/MOYA-EV1-1234/checkin
+# 6. Gate check-in (requires JWT or X-Scanner-Key header; try it twice — second reports "duplicate")
+curl -s -X POST http://localhost:4000/api/tickets/MOYA-EV1-A1B2C3D4/checkin \
+  -H "Authorization: Bearer $TOKEN"
+curl -s -X POST http://localhost:4000/api/tickets/MOYA-EV1-A1B2C3D4/checkin \
+  -H "Authorization: Bearer $TOKEN"
 
 # 7. Leave a review (only works if this user has a ticket for event 1)
 curl -s -X POST http://localhost:4000/api/events/1/reviews \
@@ -114,9 +116,19 @@ rebuilding the API image — just restart the `api` container.
 - OTP codes are returned in the API response instead of sent by SMS — wire in a real provider (Africa's Talking, Twilio) and stop returning the code
 - No real payment gateway integration (MTN MoMo, Stripe, etc.) — `paymentMethod` is just a label stored on the order
 - No HTTPS/TLS termination — add a reverse proxy (nginx/Caddy) or a managed load balancer in front of this for anything beyond local dev
-- No rate limiting, no request validation library (just manual checks) — add something like `zod` for input validation and `express-rate-limit` before exposing this publicly
 - No automated migrations — `db/init.sql` only runs once against an empty volume; add a migration tool (e.g. `node-pg-migrate`) before making schema changes over time
 - No tests — add integration tests for the reservation endpoint especially, since that's the correctness-critical path
+- No input validation library — add something like `zod` for stricter schema checks beyond the current manual guards
+
+**Already hardened (not needed before shipping):**
+- `helmet` — HTTP security headers (CSP, X-Frame-Options, HSTS, etc.)
+- `express-rate-limit` — 10 req / 15 min on all `/api/auth/*` routes
+- Cryptographically secure OTP generation (`crypto.randomInt`, 6 digits) and ticket numbers (`crypto.randomBytes`)
+- `requireCheckinAuth` — check-in endpoint requires JWT or `X-Scanner-Key`; never openly unauthenticated
+- `JWT_SECRET` startup check — server refuses to start with the default secret in production
+- CORS restricted to `CORS_ORIGIN` env var in production
+- `asyncHandler` wrapper — all async route errors propagate to Express error handler
+- `withTransaction` ROLLBACK safety — rollback failures never swallow the original error
 
 ## Project layout
 
@@ -131,10 +143,12 @@ moya-backend/
     └── src/
         ├── index.js       # Express app + route mounting
         ├── db.js          # pg pool + transaction helper
-        ├── middleware/auth.js
+        ├── middleware/
+        │   ├── auth.js          # JWT verification, requireCheckinAuth
+        │   └── asyncHandler.js  # async error propagation helper
         └── routes/
             ├── auth.js     # register / verify (OTP)
             ├── events.js   # list/detail/create + reviews
             ├── orders.js   # the transactional reservation endpoint
-            └── tickets.js  # my tickets + gate check-in
+            └── tickets.js  # my tickets + gate check-in + wallet passes
 ```
