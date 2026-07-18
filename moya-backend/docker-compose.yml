@@ -69,5 +69,24 @@ services:
     ports:
       - "8080:8080"
 
+  # Caddy — reverse proxy with automatic HTTPS.
+  # In local dev it proxies http://localhost:80 -> api:4000 with a self-signed cert.
+  # In production replace 'localhost' in Caddyfile with your domain and Caddy
+  # handles Let's Encrypt automatically; no extra cert config required.
+  caddy:
+    image: caddy:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
 volumes:
   moya_pgdata:
+  caddy_data:
+  caddy_config:
