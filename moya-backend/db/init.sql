@@ -4,6 +4,7 @@ CREATE TABLE users (
   id            SERIAL PRIMARY KEY,
   name          TEXT NOT NULL,
   phone         TEXT UNIQUE NOT NULL,
+  is_organizer  BOOLEAN NOT NULL DEFAULT false,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -28,6 +29,8 @@ CREATE TABLE events (
   city          TEXT NOT NULL,
   accent        TEXT NOT NULL DEFAULT '#F5B942',
   description   TEXT NOT NULL DEFAULT '',
+  image_url     TEXT,
+  event_start   TIMESTAMPTZ,
   created_by    INTEGER REFERENCES users(id),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -60,6 +63,8 @@ CREATE TABLE orders (
   qty             INTEGER NOT NULL,
   total           INTEGER NOT NULL,
   payment_method  TEXT NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'pending_payment',
+  tx_ref          TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -70,6 +75,13 @@ CREATE TABLE tickets (
   seat_code       TEXT,
   used            BOOLEAN NOT NULL DEFAULT false,
   checked_in_at   TIMESTAMPTZ
+);
+
+CREATE TABLE payment_intents (
+  id         SERIAL PRIMARY KEY,
+  order_id   INTEGER NOT NULL REFERENCES orders(id),
+  tx_ref     TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE reviews (
@@ -85,6 +97,7 @@ CREATE TABLE reviews (
 -- Indexes for common query patterns ------------------------------------
 CREATE INDEX idx_orders_user_id     ON orders(user_id);
 CREATE INDEX idx_orders_event_user  ON orders(event_id, user_id);
+CREATE INDEX idx_orders_tx_ref      ON orders(tx_ref);
 CREATE INDEX idx_ticket_types_event ON ticket_types(event_id);
 CREATE INDEX idx_reviews_event_id   ON reviews(event_id);
 CREATE INDEX idx_tickets_order_id   ON tickets(order_id);

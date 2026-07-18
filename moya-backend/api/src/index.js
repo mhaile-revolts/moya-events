@@ -7,6 +7,7 @@ const rateLimit = require("express-rate-limit");
 const authRoutes = require("./routes/auth");
 const eventRoutes = require("./routes/events");
 const orderRoutes = require("./routes/orders");
+const paymentRoutes = require("./routes/payments");
 const ticketRoutes = require("./routes/tickets");
 
 const app = express();
@@ -38,6 +39,7 @@ app.get("/api/health", (req, res) => res.json({ ok: true }));
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/api/tickets", ticketRoutes);
 
 app.use((err, req, res, next) => {
