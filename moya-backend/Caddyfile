@@ -1,0 +1,6 @@
+# Local dev: proxies localhost:80 and localhost:443 -> api:4000 with a self-signed cert.
+# Production: replace 'localhost' with your real domain (e.g. api.moya.rw) and Caddy
+# obtains a Let's Encrypt certificate automatically — no other changes needed.
+localhost {
+  reverse_proxy api:4000
+}

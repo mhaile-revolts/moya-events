@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+.moya-root { font-family: 'Inter', sans-serif; }
+.moya-display { font-family: 'Bricolage Grotesque', sans-serif; }
+.moya-mono { font-family: 'IBM Plex Mono', monospace; }
+.moya-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
+.moya-scroll::-webkit-scrollbar-thumb { background: #3a3564; border-radius: 4px; }
+.moya-spin { animation: moya-spin 0.9s linear infinite; }
+@keyframes moya-spin { to { transform: rotate(360deg); } }
