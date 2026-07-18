@@ -3,6 +3,7 @@ const { randomInt } = require("crypto");
 const { pool } = require("../db");
 const { signToken } = require("../middleware/auth");
 const asyncHandler = require("../middleware/asyncHandler");
+const { sendOTP } = require("../services/sms");
 
 const router = express.Router();
 
@@ -25,7 +26,10 @@ router.post("/register", asyncHandler(async (req, res) => {
     [phone, code, expiresAt]
   );
 
-  // TODO: send code via a real SMS provider (e.g. Africa's Talking, Twilio).
+  // Send OTP via SMS (Africa's Talking → Twilio → console fallback).
+  // Fire-and-forget: don't block the response on SMS delivery.
+  sendOTP(phone, code).catch((err) => console.error("[SMS] sendOTP failed:", err.message));
+
   // devCode is only included outside production so it cannot leak to real users.
   const response = { message: "Verification code issued.", pendingName: name };
   if (process.env.NODE_ENV !== "production") {

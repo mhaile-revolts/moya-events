@@ -23,21 +23,41 @@ async function getFullTicket(ticketNumber) {
   return result.rows[0] || null;
 }
 
-// GET /api/tickets/me — everything the logged-in user has purchased
+// GET /api/tickets/me — confirmed tickets for the logged-in user
+// Only orders with status = 'confirmed' are returned; pending-payment tickets are hidden.
+// Supports optional ?page and ?limit pagination (same pattern as GET /api/events).
 router.get("/me", requireAuth, asyncHandler(async (req, res) => {
-  const result = await pool.query(
-    `SELECT t.ticket_number, t.seat_code, t.used, t.checked_in_at,
-            o.qty, o.total, o.created_at AS purchased_at,
-            e.id AS event_id, e.title AS event_title, e.date_label, e.time_label, e.venue, e.city, e.accent, e.category,
-            tt.name AS ticket_type_name
-     FROM tickets t
-     JOIN orders o ON o.id = t.order_id
-     JOIN events e ON e.id = o.event_id
-     JOIN ticket_types tt ON tt.id = o.ticket_type_id
-     WHERE o.user_id = $1
-     ORDER BY o.created_at DESC`,
-    [req.user.id]
-  );
+  const paginate = req.query.page !== undefined || req.query.limit !== undefined;
+  const page  = Math.max(1, parseInt(req.query.page,  10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+  const offset = (page - 1) * limit;
+
+  const baseQuery = `
+    SELECT t.ticket_number, t.seat_code, t.used, t.checked_in_at,
+           o.qty, o.total, o.created_at AS purchased_at,
+           e.id AS event_id, e.title AS event_title, e.date_label, e.time_label, e.venue, e.city, e.accent, e.category,
+           tt.name AS ticket_type_name
+    FROM tickets t
+    JOIN orders o ON o.id = t.order_id
+    JOIN events e ON e.id = o.event_id
+    JOIN ticket_types tt ON tt.id = o.ticket_type_id
+    WHERE o.user_id = $1 AND o.status = 'confirmed'
+    ORDER BY o.created_at DESC`;
+
+  if (paginate) {
+    const countRes = await pool.query(
+      `SELECT COUNT(*) AS total
+       FROM tickets t
+       JOIN orders o ON o.id = t.order_id
+       WHERE o.user_id = $1 AND o.status = 'confirmed'`,
+      [req.user.id]
+    );
+    const total  = parseInt(countRes.rows[0].total, 10);
+    const result = await pool.query(baseQuery + " LIMIT $2 OFFSET $3", [req.user.id, limit, offset]);
+    return res.json({ tickets: result.rows, total, page, limit });
+  }
+
+  const result = await pool.query(baseQuery, [req.user.id]);
   res.json(result.rows);
 }));
 

@@ -30,10 +30,16 @@ function genTicketNumber(eventId) {
  *      read-then-write approach in the frontend-only prototype.
  */
 router.post("/reserve", requireAuth, async (req, res) => {
-  const { ticketTypeId, qty, seatCodes, paymentMethod } = req.body || {};
+  const { ticketTypeId, qty, seatCodes, paymentMethod, skipPayment } = req.body || {};
   if (!ticketTypeId || !qty || qty < 1) {
     return res.status(400).json({ error: "ticketTypeId and a positive qty are required." });
   }
+
+  // Determine the initial order status.
+  // If FLW_SECRET_KEY is not configured, or the caller requests skipPayment,
+  // confirm immediately (useful for tests and dev environments without Flutterwave).
+  const usePaymentFlow = !!process.env.FLW_SECRET_KEY && !skipPayment;
+  const initialStatus = usePaymentFlow ? "pending_payment" : "confirmed";
 
   try {
     const order = await withTransaction(async (client) => {
@@ -79,9 +85,9 @@ router.post("/reserve", requireAuth, async (req, res) => {
 
       const total = tt.price * qty;
       const orderRes = await client.query(
-        `INSERT INTO orders (user_id, event_id, ticket_type_id, qty, total, payment_method)
-         VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-        [req.user.id, tt.event_id, ticketTypeId, qty, total, paymentMethod || "momo"]
+        `INSERT INTO orders (user_id, event_id, ticket_type_id, qty, total, payment_method, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+        [req.user.id, tt.event_id, ticketTypeId, qty, total, paymentMethod || "momo", initialStatus]
       );
       const orderRow = orderRes.rows[0];
 

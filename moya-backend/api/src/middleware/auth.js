@@ -42,7 +42,11 @@ function requireCheckinAuth(req, res, next) {
 }
 
 function signToken(user) {
-  return jwt.sign({ id: user.id, name: user.name, phone: user.phone }, JWT_SECRET, { expiresIn: "30d" });
+  return jwt.sign(
+    { id: user.id, name: user.name, phone: user.phone, is_organizer: !!user.is_organizer },
+    JWT_SECRET,
+    { expiresIn: "30d" }
+  );
 }
 
 module.exports = { requireAuth, requireCheckinAuth, signToken, JWT_SECRET };

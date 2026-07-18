@@ -41,6 +41,19 @@ services:
       # Google Wallet — see api/certs/google/README.md for how to get these
       GOOGLE_WALLET_ISSUER_ID: ""
       GOOGLE_WALLET_CLASS_SUFFIX: moya_event_ticket
+      # SMS — Africa's Talking (primary for East Africa)
+      # AT_API_KEY: ""
+      # AT_USERNAME: ""
+      # AT_SENDER: "Moya"
+      # SMS — Twilio (fallback)
+      # TWILIO_SID: ""
+      # TWILIO_TOKEN: ""
+      # TWILIO_FROM: ""
+      # Payment — Flutterwave
+      # FLW_SECRET_KEY: ""
+      # FLW_PUBLIC_KEY: ""
+      # FLW_WEBHOOK_HASH: ""   # Set this in Flutterwave dashboard, must match here
+      # APP_BASE_URL: "https://app.moya.rw"  # Used for payment redirect URL
     ports:
       - "4000:4000"
     volumes:
