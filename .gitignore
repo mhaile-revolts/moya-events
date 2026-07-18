@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Certificate / credential files — never commit private keys or service accounts
+*.pem
+*.p12
+*.key
+*.crt
+*.pfx
+service-account.json
+
+# Archives (source zips that came with the project)
+*.zip
+
+# Temp directories
+tmp/
+
+# macOS
+.DS_Store
+
+# Environment files
+.env
+.env.local
+.env.*.local

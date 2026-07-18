@@ -1,0 +1,11 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.com.example.moya",
+  "teamIdentifier": "REPLACE_WITH_YOUR_TEAM_ID",
+  "organizationName": "Moya",
+  "description": "Moya event ticket",
+  "backgroundColor": "rgb(20, 18, 43)",
+  "foregroundColor": "rgb(245, 243, 255)",
+  "labelColor": "rgb(245, 185, 66)",
+  "eventTicket": {}
+}

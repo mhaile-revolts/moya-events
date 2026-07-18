@@ -1,0 +1,60 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: moya
+      POSTGRES_PASSWORD: moya
+      POSTGRES_DB: moya
+    ports:
+      - "5432:5432"
+    volumes:
+      - moya_pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U moya"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://moya:moya@db:5432/moya
+      JWT_SECRET: dev-secret-change-me
+      PORT: 4000
+      # Set NODE_ENV=production on your real deployment host (not here).
+      # Auth & security
+      # JWT_SECRET: change-me-to-a-long-random-string   # REQUIRED in production
+      # SCANNER_API_KEY: ""      # Set a strong random value for gate-scanner devices
+      # CORS_ORIGIN: ""          # Set to your frontend origin in production (e.g. https://app.moya.rw)
+      # Apple Wallet — see api/certs/apple/README.md for how to get these
+      APPLE_PASS_TYPE_ID: pass.com.example.moya
+      APPLE_TEAM_ID: REPLACE_WITH_YOUR_TEAM_ID
+      APPLE_PASS_KEY_PASSPHRASE: ""
+      # Google Wallet — see api/certs/google/README.md for how to get these
+      GOOGLE_WALLET_ISSUER_ID: ""
+      GOOGLE_WALLET_CLASS_SUFFIX: moya_event_ticket
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./api/certs:/app/certs:ro
+      - ./api/pass-models:/app/pass-models:ro
+
+  # Optional: a web UI at http://localhost:8080 for browsing the database directly.
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+
+volumes:
+  moya_pgdata:
